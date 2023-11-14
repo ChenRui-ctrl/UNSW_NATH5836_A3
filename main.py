@@ -18,15 +18,13 @@ from sklearn.metrics import classification_report
 # Function importing Dataset
 def importdata():
     data = pd.read_csv('C:/Users/chenr/Desktop/UNSW_NATH5836_A3/abalone.csv')
-    # print(data.keys)
-
-    # Printing the dataswet shape
-    print("Dataset Length: ", len(data))
-    print("Dataset Shape: ", data.shape)
-
-    # Printing the dataset obseravtions
-    print("Dataset: ", data.head())
     return data
+
+def data_convert(data):
+    data['Sex'] = data['Sex'].map({'F':1,'M':0,'I':-1})# use map()function to finish convertion
+    #print
+    return data
+
 
 def autolabel(rects):
     for rect in rects:
@@ -34,13 +32,13 @@ def autolabel(rects):
         plt.text(rect.get_x()+rect.get_width()/2.-0.08, 1.03*height, '%s' % int(height), size=10, family="Times new roman")
 
 
-def multi_class(data):
+def multi_class(data, class_name):
     data_classified = data['Rings']
     bins = [0,7,10,15,100]
     rings_bins = pd.cut(data_classified, bins)
     # print(rings_bins)
     df_ring_bins = data.groupby(rings_bins)['Rings'].count()
-    X = ['0-7', '8-10', '10-15','>15']
+    X = class_name
     a = plt.bar(X,df_ring_bins)
     plt.xlabel('Rings')
     plt.title('Multi Class')
@@ -52,14 +50,14 @@ def multi_class(data):
 # Function to split the dataset
 def splitdataset(data):
     # Separating the target variable
-    X = data.values[:, 1:5]
-    Y = data.values[:, 0]
+    X = data.values[:, :-1]
+    Y = data.values[:, -1]
 
     # Splitting the dataset into train and test
     X_train, X_test, y_train, y_test = train_test_split(
         X, Y, test_size=0.3, random_state=100)
 
-    return X, Y, X_train, X_test, y_train, y_test
+    return  X_train, X_test, y_train, y_test
 
 
 
@@ -69,40 +67,33 @@ def splitdataset(data):
 def main():
     # Building Phase
     data = importdata()
-    multi_class(data)
+    data_converted = data_convert(data)
 
-    X, Y, X_train, X_test, y_train, y_test = splitdataset(data)
+    # print(data_convereted)
+    class_name = ['0-7', '8-10', '10-15','>15']
+    multi_class(data, class_name)
 
-    from sklearn.datasets import load_iris
-    iris = load_iris()
+    X_train, X_test, y_train, y_test = splitdataset(data)
 
-    # Model (can also use single decision tree)
-    from sklearn.ensemble import RandomForestClassifier
-    model = RandomForestClassifier(n_estimators=10)
 
-    # Train
-    model.fit(iris.data, iris.target)
-    # Extract single tree
-    estimator = model.estimators_[5]
+    from sklearn.tree import DecisionTreeClassifier
 
-    from sklearn.tree import export_graphviz
-    # Export as dot file
-    export_graphviz(estimator, out_file='tree.dot',
-                    feature_names=iris.feature_names,
-                    class_names=iris.target_names,
-                    rounded=True, proportion=False,
-                    precision=2, filled=True)
+    feature_name = ['Sex','Length','Diameter','Height','Whole weight','Shucked weight','Viscera weight','Shell weight']
+    decision_tree = DecisionTreeClassifier(random_state=0, max_depth=10)
+    decision_tree = decision_tree.fit(X_train, y_train)
 
-    # Convert to png
-    from subprocess import call
-    call(['dot', '-Tpng', 'tree.dot', '-o', 'tree.png', '-Gdpi=600'])
 
-    # Display in python
-    import matplotlib.pyplot as plt
-    plt.figure(figsize=(14, 18))
-    plt.imshow(plt.imread('tree.png'))
-    plt.axis('off');
-    plt.savefig('CART_dtree.png')
+
+    from sklearn.tree import plot_tree
+    plt.figure(figsize=(25,10))
+    plot_tree(decision_tree,
+              feature_names=['Sex','Length','Diameter','Height','Whole weight','Shucked weight','Viscera weight','Shell weight'],
+              class_names=['0-7', '8-10', '10-15','>15'],
+              filled=True,
+              rounded=True,
+              fontsize=14)
+
+    plt.savefig('Decision tree')
 
 
 
