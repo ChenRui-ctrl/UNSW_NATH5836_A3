@@ -8,12 +8,12 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report
 from sklearn import tree
+from sklearn.ensemble import RandomForestClassifier
 
 
 # Function importing Dataset
@@ -175,6 +175,26 @@ def pre_prunig(X_train, X_test, y_train, y_test):
     y_predicted = decision_tree.predict(X_test)
     print('accuracy score of pre pruning: ',accuracy_score(y_test, y_predicted))
 
+def random_forest_make(X_train, X_test, y_train, y_test,number_tree):
+    arr_tr = np.zeros(number_tree)
+    for i in range(1, number_tree + 1):
+        buff_tr = np.zeros(5)
+        for j in range(5):
+            random_forest = RandomForestClassifier(n_estimators=i, max_leaf_nodes=16, n_jobs=-10)
+            random_forest.fit(X_train, y_train)
+            y_pred = random_forest.predict(X_test)
+            buff_tr[j] = accuracy_score(y_test,y_pred)
+        arr_tr[i-1] = buff_tr.mean()
+
+    plt.figure(figsize=(10, 5))
+    plt.plot([i for i in range(number_tree)], arr_tr, c='orange')
+    plt.title('Random Forest for Train Data')
+    plt.xlabel('Max_Number_Tree')
+    plt.ylabel('Train Accuracy')
+    plt.savefig('Random Forest Accuracy.png')
+
+
+
 # Driver code
 def main():
     # import data
@@ -203,6 +223,8 @@ def main():
     print('accuracy score of post pruning:',accuracy_score(y_test,decision_tree_post_pruning.predict((X_test))))
 
     #random forest
+    number_tree = 60
+    random_forest_make(X_train, X_test, y_train, y_test,number_tree)
 
 
 
