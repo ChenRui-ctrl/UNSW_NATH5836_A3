@@ -13,8 +13,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report
-from sklearn.tree import export_graphviz
-from subprocess import call
+from sklearn import tree
 
 
 # Function importing Dataset
@@ -169,6 +168,13 @@ def post_pruning(decision_tree,X_train, X_test, y_train, y_test):
     ax.legend()
     plt.savefig('Accuracy vs Alpha.png')
 
+def pre_prunig(X_train, X_test, y_train, y_test):
+    decision_tree = DecisionTreeClassifier(criterion='gini', max_depth=4, min_samples_leaf=5, min_samples_split=12,
+                                 splitter='random')
+    decision_tree.fit(X_train, y_train)
+    y_predicted = decision_tree.predict(X_test)
+    print('accuracy score of pre pruning: ',accuracy_score(y_test, y_predicted))
+
 # Driver code
 def main():
     # import data
@@ -188,9 +194,15 @@ def main():
 
     #prune
     post_pruning(decision_tree,X_train, X_test, y_train, y_test)
+    pre_prunig(X_train, X_test, y_train, y_test)
+    decision_tree_post_pruning = DecisionTreeClassifier(random_state=0, ccp_alpha=0.02)
+    decision_tree_post_pruning.fit(X_train,y_train)
+    plt.figure(figsize = (10,5))
+    tree.plot_tree(decision_tree_post_pruning,rounded=True,filled=True)
+    plt.savefig('Decision Tree After Post Pruning')
+    print('accuracy score of post pruning:',accuracy_score(y_test,decision_tree_post_pruning.predict((X_test))))
 
-
-
+    #random forest
 
 
 
