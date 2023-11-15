@@ -37,30 +37,6 @@ def importdata():
     data = data.astype("float")
     return data
 
-def read_data():
-    abalone = pd.read_csv("C:/Users/chenr/Desktop/pythonProject/abalone.data", sep=',', header=None)
-    abalone = abalone.values
-    ### combine female and male feature as adult
-    abalone[:, 0] = np.where(abalone[:, 0] == -1, 0, 1)
-    ### clean 0 data in this dataset
-    for i in range(1, abalone.shape[1]):
-        abalone = np.delete(abalone, abalone[:, i] == 0, axis=0)
-
-    ### treat the output part by label code which means 0-7 years as 1, 8-10 years as 2, and so on
-    for j in range(abalone.shape[0]):
-        mid = abalone[j, -1]
-        if mid < 8:
-            abalone[j, -1] = 1
-        elif mid < 11:
-            abalone[j, -1] = 2
-        elif mid < 16:
-            abalone[j, -1] = 3
-        else:
-            abalone[j, -1] = 4
-    ### change to float data type
-    abalone = abalone.astype("float")
-
-    return (abalone)
 
 def autolabel(rects):
     for rect in rects:
@@ -68,7 +44,9 @@ def autolabel(rects):
         plt.text(rect.get_x()+rect.get_width()/2.-0.08, 1.03*height, '%s' % int(height), size=10, family="Times new roman")
 
 
-def multi_class(data, class_name):
+def multi_class( class_name):
+    data = pd.read_csv('C:/Users/chenr/Desktop/UNSW_NATH5836_A3/abalone.data')
+    data = data.values
     # data_classified = data[8]
     # df_data_classified = pd.DataFrame(data_classified)
     df_data = pd.DataFrame(data)
@@ -106,7 +84,7 @@ def tree_make(X_train,y_train):
     detree = decision_tree.fit(X_train, y_train)
 
     from sklearn.tree import plot_tree
-    plt.figure(figsize=(25, 10))
+    plt.figure(figsize=(90, 15))
     plot_tree(detree,
               feature_names=['Sex', 'Length', 'Diameter', 'Height', 'Whole weight', 'Shucked weight', 'Viscera weight',
                              'Shell weight'],
@@ -157,11 +135,11 @@ def post_pruning(decision_tree,X_train, X_test, y_train, y_test):
         clf = DecisionTreeClassifier(random_state=0, ccp_alpha=ccp_alpha)
         clf.fit(X_train, y_train)
         clfs.append(clf)
-    print(
-        "Number of nodes in the last tree is: {} with ccp_alpha: {}".format(
-            clfs[-1].tree_.node_count, ccp_alphas[-1]
-        )
-    )
+    # print(
+    #     "Number of nodes in the last tree is: {} with ccp_alpha: {}".format(
+    #         clfs[-1].tree_.node_count, ccp_alphas[-1]
+    #     )
+    # )
     clfs = clfs[:-1]
     ccp_alphas = ccp_alphas[:-1]
 
@@ -198,7 +176,7 @@ def main():
 
     # create multiiclass
     class_name = ['0-7', '8-10', '10-15','>15']
-    multi_class(data, class_name)
+    multi_class(class_name)
 
     # create decision tree
     X_train, X_test, y_train, y_test = splitdataset(data)
