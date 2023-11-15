@@ -102,8 +102,8 @@ def splitdataset(data):
 
 
 def tree_make(X_train,y_train):
-    model = DecisionTreeClassifier(max_depth=3, criterion='gini')
-    detree = model.fit(X_train, y_train)
+    decision_tree = DecisionTreeClassifier(max_depth=5, criterion='gini')
+    detree = decision_tree.fit(X_train, y_train)
 
     from sklearn.tree import plot_tree
     plt.figure(figsize=(25, 10))
@@ -116,19 +116,101 @@ def tree_make(X_train,y_train):
               fontsize=14)
 
     plt.savefig('Decision tree')
+    return detree
 
+def tree_choose(data,numebr_depth):
+    arr_tr = np.zeros(numebr_depth)
+    arr_t = np.zeros(numebr_depth)
+    for i in range(1,numebr_depth+1):
+        X_train, X_test, y_train, y_test = splitdataset(data)
+        decision_tree = DecisionTreeClassifier(max_depth=i, criterion='gini')
+        decision_tree.fit(X_train, y_train)
+        acc_tr = accuracy_score(y_true=y_train, y_pred=decision_tree.predict(X_train))
+        acc_t =  accuracy_score(y_true=y_test, y_pred=decision_tree.predict(X_test))
+        arr_tr[i-1] = acc_tr
+        arr_t[i-1] = acc_t
+    plt.figure(figsize=(10, 5))
+    plt.plot([i for i in range(numebr_depth)], arr_tr, c='orange')
+    plt.title('Decision Tree for Train Data')
+    plt.xlabel('Max_Depth')
+    plt.ylabel('Train Accuracy')
+    plt.savefig('Acc_Train.png')
+    plt.figure(figsize=(10, 5))
+    plt.plot([i for i in range(numebr_depth)], arr_t, c='orange')
+    plt.title('Decision Tree for Test Data')
+    plt.xlabel('Max_Depth')
+    plt.ylabel('Test Accuracy')
+    plt.savefig('Acc_T.png')
 
+def post_pruning(decision_tree,X_train, X_test, y_train, y_test):
+    path = decision_tree.cost_complexity_pruning_path(X_train, y_train)
+    ccp_alphas, impurities = path.ccp_alphas, path.impurities
+    fig, ax = plt.subplots()
+    ax.plot(ccp_alphas[:-1], impurities[:-1], marker="o", drawstyle="steps-post")
+    ax.set_xlabel("effective alpha")
+    ax.set_ylabel("total impurity of leaves")
+    ax.set_title("Total Impurity vs effective alpha for training set")
+    plt.savefig('Impurity vs Effective.png')
+
+    clfs = []
+    for ccp_alpha in ccp_alphas:
+        clf = DecisionTreeClassifier(random_state=0, ccp_alpha=ccp_alpha)
+        clf.fit(X_train, y_train)
+        clfs.append(clf)
+    print(
+        "Number of nodes in the last tree is: {} with ccp_alpha: {}".format(
+            clfs[-1].tree_.node_count, ccp_alphas[-1]
+        )
+    )
+    clfs = clfs[:-1]
+    ccp_alphas = ccp_alphas[:-1]
+
+    node_counts = [clf.tree_.node_count for clf in clfs]
+    depth = [clf.tree_.max_depth for clf in clfs]
+    fig, ax = plt.subplots(2, 1)
+    ax[0].plot(ccp_alphas, node_counts, marker="o", drawstyle="steps-post")
+    ax[0].set_xlabel("alpha")
+    ax[0].set_ylabel("number of nodes")
+    ax[0].set_title("Number of nodes vs alpha")
+    ax[1].plot(ccp_alphas, depth, marker="o", drawstyle="steps-post")
+    ax[1].set_xlabel("alpha")
+    ax[1].set_ylabel("depth of tree")
+    ax[1].set_title("Depth vs alpha")
+    fig.tight_layout()
+    plt.savefig('Node vs Alpha vs Depth.png')
+
+    train_scores = [clf.score(X_train, y_train) for clf in clfs]
+    test_scores = [clf.score(X_test, y_test) for clf in clfs]
+
+    fig, ax = plt.subplots()
+    ax.set_xlabel("alpha")
+    ax.set_ylabel("accuracy")
+    ax.set_title("Accuracy vs alpha for training and testing sets")
+    ax.plot(ccp_alphas, train_scores, marker="o", label="train", drawstyle="steps-post")
+    ax.plot(ccp_alphas, test_scores, marker="o", label="test", drawstyle="steps-post")
+    ax.legend()
+    plt.savefig('Accuracy vs Alpha.png')
 
 # Driver code
 def main():
     # import data
     data = importdata()
+
     # create multiiclass
     class_name = ['0-7', '8-10', '10-15','>15']
     multi_class(data, class_name)
+
     # create decision tree
     X_train, X_test, y_train, y_test = splitdataset(data)
-    tree_make(X_train,y_train)
+    decision_tree = tree_make(X_train,y_train)
+
+    #choose the best tree
+    numebr_depth = 30
+    tree_choose(data,numebr_depth)
+
+    #prune
+    post_pruning(decision_tree,X_train, X_test, y_train, y_test)
+
 
 
 
