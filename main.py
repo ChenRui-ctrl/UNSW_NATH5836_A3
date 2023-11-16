@@ -125,13 +125,13 @@ def tree_choose(data,numebr_depth):
     plt.title('Decision Tree for Train Data')
     plt.xlabel('Max_Depth')
     plt.ylabel('Train Accuracy')
-    plt.savefig('Acc_Train.png')
+    plt.savefig('Decision Tree Train Accuracy.png')
     plt.figure(figsize=(10, 5))
     plt.plot([i for i in range(numebr_depth)], arr_t, c='orange')
     plt.title('Decision Tree for Test Data')
     plt.xlabel('Max_Depth')
     plt.ylabel('Test Accuracy')
-    plt.savefig('Acc_T.png')
+    plt.savefig('Decision Tree Test Accuracy.png')
 
 def post_pruning(decision_tree,X_train, X_test, y_train, y_test):
     path = decision_tree.cost_complexity_pruning_path(X_train, y_train)
@@ -246,7 +246,7 @@ def XGBoost(data, expruns):
         le = LabelEncoder()
         y_train = le.fit_transform(y_train)
         xgb_classifier = xgb.XGBClassifier(colsample_bytree = 0.3, learning_rate = 0.1,
-            max_depth = i, alpha = 5, n_estimators = 100)
+            max_depth = 0, alpha = 5, n_estimators = i)
         xgb_classifier.fit(X_train, y_train)
         y_pred = xgb_classifier.predict(X_test)
         arr_xgb[i] = accuracy_score(y_test, y_pred)
@@ -258,7 +258,24 @@ def XGBoost(data, expruns):
     plt.ylabel('Train Accuracy')
     plt.savefig('XGBoost Accuracy.png')
 
+def Adam(X_train, X_test, y_train, y_test):
+    arr_xgb = np.zeros(expruns)
+    for i in range(0, expruns):
+        X_train, X_test, y_train, y_test = splitdataset(data)
+        le = LabelEncoder()
+        y_train = le.fit_transform(y_train)
+        xgb_classifier = xgb.XGBClassifier(colsample_bytree=0.3, learning_rate=0.1,
+                                           max_depth=0, alpha=5, n_estimators=i)
+        xgb_classifier.fit(X_train, y_train)
+        y_pred = xgb_classifier.predict(X_test)
+        arr_xgb[i] = accuracy_score(y_test, y_pred)
 
+    plt.figure(figsize=(10, 5))
+    plt.plot([i for i in range(expruns)], arr_xgb, c='orange')
+    plt.title('XGBoost for Train Data')
+    plt.xlabel('Max_Experience_Run')
+    plt.ylabel('Train Accuracy')
+    plt.savefig('XGBoost Accuracy.png')
 
 # Driver code
 def main():
@@ -295,10 +312,13 @@ def main():
     #GDBT
     expruns = 50
 
-    GDBT( X_train, X_test, y_train, y_test)
+    GDBT(X_train, X_test, y_train, y_test)
 
     #XGBoost
     XGBoost(data, expruns)
+
+    #adam
+    # Adam(X_train, X_test, y_train, y_test)
 
 
 
