@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import xgboost as xgb
+import matplotlib as mpl
+mpl.rcParams['figure.max_open_warning'] = 0
 
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
@@ -19,6 +21,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import log_loss
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn import ensemble
+from sklearn.preprocessing import LabelEncoder
+
+
 
 
 
@@ -105,13 +110,16 @@ def tree_choose(data,numebr_depth):
     arr_tr = np.zeros(numebr_depth)
     arr_t = np.zeros(numebr_depth)
     for i in range(1,numebr_depth+1):
-        X_train, X_test, y_train, y_test = splitdataset(data)
-        decision_tree = DecisionTreeClassifier(max_depth=i, criterion='gini')
-        decision_tree.fit(X_train, y_train)
-        acc_tr = accuracy_score(y_true=y_train, y_pred=decision_tree.predict(X_train))
-        acc_t =  accuracy_score(y_true=y_test, y_pred=decision_tree.predict(X_test))
-        arr_tr[i-1] = acc_tr
-        arr_t[i-1] = acc_t
+        buff_tr = np.zeros(5)
+        buff_t = np.zeros(5)
+        for j in range(5):
+            X_train, X_test, y_train, y_test = splitdataset(data)
+            decision_tree = DecisionTreeClassifier(max_depth=i, criterion='gini')
+            decision_tree.fit(X_train, y_train)
+            buff_tr[j] = accuracy_score(y_true=y_train, y_pred=decision_tree.predict(X_train))
+            buff_t[j] =  accuracy_score(y_true=y_test, y_pred=decision_tree.predict(X_test))
+        arr_tr[i-1] = buff_tr.mean()
+        arr_t[i-1] = buff_t.mean()
     plt.figure(figsize=(10, 5))
     plt.plot([i for i in range(numebr_depth)], arr_tr, c='orange')
     plt.title('Decision Tree for Train Data')
@@ -179,14 +187,10 @@ def pre_prunig(X_train, X_test, y_train, y_test):
 def random_forest_make(X_train, X_test, y_train, y_test,number_tree):
     arr_tr = np.zeros(number_tree)
     for i in range(1, number_tree + 1):
-        buff_tr = np.zeros(5)
-        for j in range(5):
-            random_forest = RandomForestClassifier(n_estimators=i, max_leaf_nodes=16, n_jobs=-10)
-            random_forest.fit(X_train, y_train)
-            y_pred = random_forest.predict(X_test)
-            buff_tr[j] = accuracy_score(y_test,y_pred)
-        arr_tr[i-1] = buff_tr.mean()
-
+        random_forest = RandomForestClassifier(n_estimators=i, max_leaf_nodes=16, n_jobs=-10)
+        random_forest.fit(X_train, y_train)
+        y_pred = random_forest.predict(X_test)
+        arr_tr[i-1] = accuracy_score(y_test,y_pred)
     plt.figure(figsize=(10, 5))
     plt.plot([i for i in range(number_tree)], arr_tr, c='orange')
     plt.title('Random Forest for Train Data')
@@ -229,23 +233,23 @@ def GDBT(X_train, X_test, y_train, y_test):
     plt.legend(loc='upper left')
     plt.xlabel('Boosting Iterations')
     plt.ylabel('Test Set Deviance')
-
     plt.savefig('GDBT.png')
 
-def XGBoost(X_train, X_test, y_train, y_test, expruns):
-    clf_tr = xgb.DMatrix(X_train, y_train, enable_categorical=True)
-    clf_t = xgb.DMatrix(X_test, y_test, enable_categorical=True)
+def XGBoost(data, expruns):
+
+    # clf_tr = xgb.DMatrix(X_train, y_train, enable_categorical=True)
+    # clf_t = xgb.DMatrix(X_test, y_test, enable_categorical=True)
+
     arr_xgb = np.zeros(expruns)
-    for i in range(1, expruns + 1):
-        buff_xgb = np.zeros(5)
-        for j in range(5):
-            xgb_classifier = xgb.XGBClassifier(n_estimators=100, objective='binary:logistic', tree_method='hist',
-                                               eta=0.1,
-                                               max_depth=3, enable_categorical=True)
-            xgb_classifier.fit(X_train, y_train)
-            y_pred = xgb_classifier.predict(X_test)
-            buff_xgb[j] = accuracy_score(y_pred, y_test)
-        arr_xgb[i - 1] = buff_xgb.mean()
+    for i in range(0, expruns):
+        X_train, X_test, y_train, y_test = splitdataset(data)
+        le = LabelEncoder()
+        y_train = le.fit_transform(y_train)
+        xgb_classifier = xgb.XGBClassifier(colsample_bytree = 0.3, learning_rate = 0.1,
+            max_depth = i, alpha = 5, n_estimators = 100)
+        xgb_classifier.fit(X_train, y_train)
+        y_pred = xgb_classifier.predict(X_test)
+        arr_xgb[i] = accuracy_score(y_test, y_pred)
 
     plt.figure(figsize=(10, 5))
     plt.plot([i for i in range(expruns)], arr_xgb, c='orange')
@@ -294,8 +298,7 @@ def main():
     GDBT( X_train, X_test, y_train, y_test)
 
     #XGBoost
-    for i in range(0, expruns):
-        XGBoost(X_train, X_test, y_train, y_test, i)
+    XGBoost(data, expruns)
 
 
 
