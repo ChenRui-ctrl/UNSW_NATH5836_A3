@@ -202,29 +202,26 @@ def GDBT(X_train, X_test, y_train, y_test):
 
     for label, color, setting in [('No shrinkage', 'orange',
                                    {'learning_rate': 1.0, 'subsample': 1.0}),
-                                  ('learning_rate=0.1', 'turquoise',
-                                   {'learning_rate': 0.1, 'subsample': 1.0}),
+                                  ('learning_rate=0.2', 'turquoise',
+                                   {'learning_rate': 0.2, 'subsample': 1.0}),
                                   ('subsample=0.5', 'blue',
                                    {'learning_rate': 1.0, 'subsample': 0.5}),
-                                  ('learning_rate=0.1, subsample=0.5', 'gray',
-                                   {'learning_rate': 0.1, 'subsample': 0.5}),
-                                  ('learning_rate=0.1, max_features=2', 'magenta',
-                                   {'learning_rate': 0.1, 'max_features': 2})]:
+                                  ('learning_rate=0.2, subsample=0.5', 'gray',
+                                   {'learning_rate': 0.2, 'subsample': 0.5}),
+                                  ('learning_rate=0.2, max_features=2', 'magenta',
+                                   {'learning_rate': 0.2, 'max_features': 2})]:
         params = dict(original_params)
         params.update(setting)
 
         clf = ensemble.GradientBoostingClassifier(**params)
         clf.fit(X_train, y_train)
 
-        y_pred = clf.predict(X_test)
         # compute test set deviance
         test_deviance = np.zeros((params['n_estimators'],), dtype=np.float64)
 
-
-
         for i, y_pred in enumerate(clf.staged_decision_function(X_test)):
             # clf.loss_ assumes that y_test[i] in {0, 1}
-            test_deviance[i] = clf.loss_(y_test, y_pred)
+            test_deviance[i] = 2 * log_loss(y_test, y_pred)
 
         plt.plot((np.arange(test_deviance.shape[0]) + 1)[::5], test_deviance[::5],
                  '-', color=color, label=label)
@@ -233,15 +230,29 @@ def GDBT(X_train, X_test, y_train, y_test):
     plt.xlabel('Boosting Iterations')
     plt.ylabel('Test Set Deviance')
 
-    plt.savefig('xgboost.png')
+    plt.savefig('GDBT.png')
 
-def XGBoost(X_train, X_test, y_train, y_test):
+def XGBoost(X_train, X_test, y_train, y_test, expruns):
     clf_tr = xgb.DMatrix(X_train, y_train, enable_categorical=True)
     clf_t = xgb.DMatrix(X_test, y_test, enable_categorical=True)
-    xgb_classifier = xgb.XGBClassifier(n_estimators=100, objective='binary:logistic', tree_method='hist', eta=0.1,
-                                       max_depth=3, enable_categorical=True)
-    xgb_classifier.fit(X_train, y_train)
-    model = xgb_classifier.get_booster()
+    arr_xgb = np.zeros(expruns)
+    for i in range(1, expruns + 1):
+        buff_xgb = np.zeros(5)
+        for j in range(5):
+            xgb_classifier = xgb.XGBClassifier(n_estimators=100, objective='binary:logistic', tree_method='hist',
+                                               eta=0.1,
+                                               max_depth=3, enable_categorical=True)
+            xgb_classifier.fit(X_train, y_train)
+            y_pred = xgb_classifier.predict(X_test)
+            buff_xgb[j] = accuracy_score(y_pred, y_test)
+        arr_xgb[i - 1] = buff_xgb.mean()
+
+    plt.figure(figsize=(10, 5))
+    plt.plot([i for i in range(expruns)], arr_xgb, c='orange')
+    plt.title('XGBoost for Train Data')
+    plt.xlabel('Max_Experience_Run')
+    plt.ylabel('Train Accuracy')
+    plt.savefig('XGBoost Accuracy.png')
 
 
 
@@ -278,10 +289,13 @@ def main():
 
 
     #GDBT
+    expruns = 50
+
     GDBT( X_train, X_test, y_train, y_test)
 
     #XGBoost
-    # XGBoost(X_train, X_test, y_train, y_test)
+    for i in range(0, expruns):
+        XGBoost(X_train, X_test, y_train, y_test, i)
 
 
 
