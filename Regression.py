@@ -259,41 +259,33 @@ def XGBoost(data, expruns):
     plt.ylabel('Train Accuracy')
     plt.savefig('XGBoost Accuracy.png')
 
-def Adam(data, expruns):
-    arr_xgb = np.zeros(expruns)
-    for i in range(1, expruns+1):
-        X_train, X_test, y_train, y_test = splitdataset(data)
-        le = LabelEncoder()
-        y_train = le.fit_transform(y_train)
-        xgb_classifier = MLPClassifier(random_state=i, max_iter=100,solver='adam')
-        xgb_classifier.fit(X_train, y_train)
-        y_pred = xgb_classifier.predict(X_test)
-        arr_xgb[i-1] = accuracy_score(y_test, y_pred)
+def Adam(data, i):
+    X_train, X_test, y_train, y_test = splitdataset(data)
+    le = LabelEncoder()
+    y_train = le.fit_transform(y_train)
+    xgb_classifier = MLPClassifier(random_state=i,solver='adam')
+    xgb_classifier.fit(X_train, y_train)
+    y_pred = xgb_classifier.predict(X_test)
+    arr_adam = accuracy_score(y_test, y_pred)
+    return arr_adam
+    # plt.figure(figsize=(10, 5))
+    # plt.plot([i for i in range(expruns)], arr_xgb, c='orange')
+    # plt.title('Adam for Train Data')
+    # plt.xlabel('Max_Experience_Run')
+    # plt.ylabel('Train Accuracy')
+    # plt.savefig('Adam Accuracy.png')
 
-    plt.figure(figsize=(10, 5))
-    plt.plot([i for i in range(expruns)], arr_xgb, c='orange')
-    plt.title('Adam for Train Data')
-    plt.xlabel('Max_Experience_Run')
-    plt.ylabel('Train Accuracy')
-    plt.savefig('Adam Accuracy.png')
+def SGD(data, i):
+    X_train, X_test, y_train, y_test = splitdataset(data)
+    le = LabelEncoder()
+    y_train = le.fit_transform(y_train)
+    xgb_classifier = MLPClassifier(random_state=i,solver='sgd')
+    xgb_classifier.fit(X_train, y_train)
+    y_pred = xgb_classifier.predict(X_test)
+    arr_sgb = accuracy_score(y_test, y_pred)
+    return(arr_sgb)
 
-def SGD(data, expruns):
-    arr_xgb = np.zeros(expruns)
-    for i in range(1, expruns+1):
-        X_train, X_test, y_train, y_test = splitdataset(data)
-        le = LabelEncoder()
-        y_train = le.fit_transform(y_train)
-        xgb_classifier = MLPClassifier(random_state=i, max_iter=100,solver='sgd')
-        xgb_classifier.fit(X_train, y_train)
-        y_pred = xgb_classifier.predict(X_test)
-        arr_xgb[i-1] = accuracy_score(y_test, y_pred)
 
-    plt.figure(figsize=(10, 5))
-    plt.plot([i for i in range(expruns)], arr_xgb, c='orange')
-    plt.title('Sgd for Train Data')
-    plt.xlabel('Max_Experience_Run')
-    plt.ylabel('Train Accuracy')
-    plt.savefig('Sgd Accuracy.png')
 
 # Driver code
 def main():
@@ -336,12 +328,23 @@ def main():
     XGBoost(data, expruns)
 
     #adam
-    Adam(data,expruns)
+    arr_adam = np.zeros(expruns)
+    for i in range(1, expruns + 1):
+        arr_adam[i-1] = Adam(data,i)
 
     # SGD
-    SGD(data, expruns)
+    arr_sgd = np.zeros(expruns)
+    for i in range(1, expruns + 1):
+        arr_sgd[i-1] = SGD(data, i)
 
-
+    plt.figure(figsize=(10, 5))
+    plt.plot([i for i in range(expruns)], arr_adam, c='orange', label='Adam')
+    plt.plot([i for i in range(expruns)], arr_sgd, c='blue', label='SGD')
+    plt.legend()
+    plt.title('Sgd & Adam for Train Data')
+    plt.xlabel('Max_Experience_Run')
+    plt.ylabel('Train Accuracy')
+    plt.savefig('Sgd vs Adam Accuracy.png')
 
 
 
