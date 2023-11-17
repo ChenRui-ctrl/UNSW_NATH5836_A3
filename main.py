@@ -104,7 +104,7 @@ def tree_make(X_train,y_train):
               rounded=True,
               fontsize=14)
 
-    plt.savefig('Decision tree')
+    plt.savefig('Classification Decision Tree')
     return detree
 
 def tree_choose(data,numebr_depth):
@@ -126,13 +126,13 @@ def tree_choose(data,numebr_depth):
     plt.title('Decision Tree for Train Data')
     plt.xlabel('Max_Depth')
     plt.ylabel('Train Accuracy')
-    plt.savefig('Decision Tree Train Accuracy.png')
+    plt.savefig('Classification Decision Tree Train Accuracy.png')
     plt.figure(figsize=(10, 5))
     plt.plot([i for i in range(numebr_depth)], arr_t, c='orange')
     plt.title('Decision Tree for Test Data')
     plt.xlabel('Max_Depth')
     plt.ylabel('Test Accuracy')
-    plt.savefig('Decision Tree Test Accuracy.png')
+    plt.savefig('Classification Decision Tree Test Accuracy.png')
 
 def post_pruning(decision_tree,X_train, X_test, y_train, y_test):
     path = decision_tree.cost_complexity_pruning_path(X_train, y_train)
@@ -142,7 +142,7 @@ def post_pruning(decision_tree,X_train, X_test, y_train, y_test):
     ax.set_xlabel("effective alpha")
     ax.set_ylabel("total impurity of leaves")
     ax.set_title("Total Impurity vs effective alpha for training set")
-    plt.savefig('Impurity vs Effective.png')
+    plt.savefig('Classification Impurity vs Effective.png')
 
     clfs = []
     for ccp_alpha in ccp_alphas:
@@ -164,7 +164,7 @@ def post_pruning(decision_tree,X_train, X_test, y_train, y_test):
     ax[1].set_ylabel("depth of tree")
     ax[1].set_title("Depth vs alpha")
     fig.tight_layout()
-    plt.savefig('Node vs Alpha vs Depth.png')
+    plt.savefig('Classification Node vs Alpha vs Depth.png')
 
     train_scores = [clf.score(X_train, y_train) for clf in clfs]
     test_scores = [clf.score(X_test, y_test) for clf in clfs]
@@ -176,7 +176,7 @@ def post_pruning(decision_tree,X_train, X_test, y_train, y_test):
     ax.plot(ccp_alphas, train_scores, marker="o", label="train", drawstyle="steps-post")
     ax.plot(ccp_alphas, test_scores, marker="o", label="test", drawstyle="steps-post")
     ax.legend()
-    plt.savefig('Accuracy vs Alpha.png')
+    plt.savefig('Classification Accuracy vs Alpha.png')
 
 def pre_prunig(X_train, X_test, y_train, y_test):
     decision_tree = DecisionTreeClassifier(criterion='gini', max_depth=4, min_samples_leaf=5, min_samples_split=12,
@@ -197,7 +197,7 @@ def random_forest_make(X_train, X_test, y_train, y_test,number_tree):
     plt.title('Random Forest for Train Data')
     plt.xlabel('Max_Number_Tree')
     plt.ylabel('Train Accuracy')
-    plt.savefig('Random Forest Accuracy.png')
+    plt.savefig('Classification Random Forest Accuracy.png')
 
 def GDBT(X_train, X_test, y_train, y_test):
     original_params = {'n_estimators': 1000, 'max_leaf_nodes': 4, 'max_depth': None, 'random_state': 2,
@@ -225,7 +225,6 @@ def GDBT(X_train, X_test, y_train, y_test):
         test_deviance = np.zeros((params['n_estimators'],), dtype=np.float64)
 
         for i, y_pred in enumerate(clf.staged_decision_function(X_test)):
-            # clf.loss_ assumes that y_test[i] in {0, 1}
             test_deviance[i] = 2 * log_loss(y_test, y_pred)
 
         plt.plot((np.arange(test_deviance.shape[0]) + 1)[::5], test_deviance[::5],
@@ -234,7 +233,7 @@ def GDBT(X_train, X_test, y_train, y_test):
     plt.legend(loc='upper left')
     plt.xlabel('Boosting Iterations')
     plt.ylabel('Test Set Deviance')
-    plt.savefig('GDBT.png')
+    plt.savefig('Classification GDBT.png')
 
 def XGBoost(data, expruns):
 
@@ -257,7 +256,7 @@ def XGBoost(data, expruns):
     plt.title('XGBoost for Train Data')
     plt.xlabel('Max_Experience_Run')
     plt.ylabel('Train Accuracy')
-    plt.savefig('XGBoost Accuracy.png')
+    plt.savefig('Classification XGBoost Accuracy.png')
 
 def Adam(data, i):
     X_train, X_test, y_train, y_test = splitdataset(data)
@@ -307,11 +306,11 @@ def main():
     #prune
     post_pruning(decision_tree,X_train, X_test, y_train, y_test)
     pre_prunig(X_train, X_test, y_train, y_test)
-    decision_tree_post_pruning = DecisionTreeClassifier(random_state=0, ccp_alpha=0.02)
+    decision_tree_post_pruning = DecisionTreeClassifier(random_state=0, ccp_alpha=0.02, max_depth=3)
     decision_tree_post_pruning.fit(X_train,y_train)
     plt.figure(figsize = (10,5))
     tree.plot_tree(decision_tree_post_pruning,rounded=True,filled=True)
-    plt.savefig('Decision Tree After Post Pruning')
+    plt.savefig('Classification Decision Tree After Post Pruning')
     print('accuracy score of post pruning:',accuracy_score(y_test,decision_tree_post_pruning.predict((X_test))))
 
     #random forest
@@ -344,7 +343,7 @@ def main():
     plt.title('Sgd & Adam for Train Data')
     plt.xlabel('Max_Experience_Run')
     plt.ylabel('Train Accuracy')
-    plt.savefig('Sgd vs Adam Accuracy.png')
+    plt.savefig('Classification Sgd vs Adam Accuracy.png')
 
 
 
