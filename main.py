@@ -91,11 +91,11 @@ def splitdataset(data):
 
 
 def tree_make(X_train,y_train):
-    decision_tree = DecisionTreeClassifier(max_depth=5, criterion='gini')
+    decision_tree = DecisionTreeClassifier(max_depth=4, criterion='gini')
     detree = decision_tree.fit(X_train, y_train)
 
     from sklearn.tree import plot_tree
-    plt.figure(figsize=(90, 15))
+    plt.figure(figsize=(60, 10))
     plot_tree(detree,
               feature_names=['Sex', 'Length', 'Diameter', 'Height', 'Whole weight', 'Shucked weight', 'Viscera weight',
                              'Shell weight'],
@@ -178,12 +178,22 @@ def post_pruning(decision_tree,X_train, X_test, y_train, y_test):
     ax.legend()
     plt.savefig('Classification Accuracy vs Alpha.png')
 
-def pre_prunig(X_train, X_test, y_train, y_test):
-    decision_tree = DecisionTreeClassifier(criterion='gini', max_depth=4, min_samples_leaf=5, min_samples_split=12,
-                                 splitter='random')
-    decision_tree.fit(X_train, y_train)
-    y_predicted = decision_tree.predict(X_test)
-    print('accuracy score of pre pruning: ',accuracy_score(y_test, y_predicted))
+def pre_prunig(X_train, X_test, y_train, y_test,expruns):
+    arr_tr = np.zeros(expruns)
+    for i in range(1, expruns + 1):
+        decision_tree = DecisionTreeClassifier(criterion='gini', max_depth=4, min_samples_leaf=i, min_samples_split=12,
+                                               splitter='random')
+        decision_tree.fit(X_train, y_train)
+        y_pred = decision_tree.predict(X_test)
+        arr_tr[i - 1] = accuracy_score(y_test, y_pred)
+    plt.figure(figsize=(10, 5))
+    plt.plot([i for i in range(expruns)], arr_tr, c='orange')
+    plt.title('Pre-pruning for Train Data')
+    plt.xlabel('min_samples_leaf')
+    plt.ylabel('Train Accuracy')
+    plt.savefig('Classification Pre-pruning Accuracy.png')
+
+
 
 def random_forest_make(X_train, X_test, y_train, y_test,number_tree):
     arr_tr = np.zeros(number_tree)
@@ -199,7 +209,7 @@ def random_forest_make(X_train, X_test, y_train, y_test,number_tree):
     plt.ylabel('Train Accuracy')
     plt.savefig('Classification Random Forest Accuracy.png')
 
-def GDBT(X_train, X_test, y_train, y_test):
+def GDBT(data, X_train, X_test, y_train, y_test, expruns):
     original_params = {'n_estimators': 1000, 'max_leaf_nodes': 4, 'max_depth': None, 'random_state': 2,
                        'min_samples_split': 5}
 
@@ -235,6 +245,24 @@ def GDBT(X_train, X_test, y_train, y_test):
     plt.ylabel('Test Set Deviance')
     plt.savefig('Classification GDBT.png')
 
+    arr_gbrt = np.zeros(expruns)
+    for i in range(1, expruns+1):
+        X_train, X_test, y_train, y_test = splitdataset(data)
+        le = LabelEncoder()
+        y_train = le.fit_transform(y_train)
+        gbrt_classifier = ensemble.GradientBoostingClassifier(n_estimators=i, subsample=1, max_depth=4, random_state=2,
+                       learning_rate=1)
+        gbrt_classifier.fit(X_train, y_train)
+        y_pred = gbrt_classifier.predict(X_test)
+        arr_gbrt[i-1] = accuracy_score(y_test, y_pred)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot([i for i in range(expruns)], arr_gbrt, c='orange')
+    plt.title('GDBT for Train Data')
+    plt.xlabel('Max_Experience_Run')
+    plt.ylabel('Train Accuracy')
+    plt.savefig('Classification GDBT Accuracy.png')
+
 def XGBoost(data, expruns):
 
     # clf_tr = xgb.DMatrix(X_train, y_train, enable_categorical=True)
@@ -245,8 +273,7 @@ def XGBoost(data, expruns):
         X_train, X_test, y_train, y_test = splitdataset(data)
         le = LabelEncoder()
         y_train = le.fit_transform(y_train)
-        xgb_classifier = xgb.XGBClassifier(colsample_bytree = 0.3, learning_rate = 0.1,
-            max_depth = 0, alpha = 5, n_estimators = i)
+        xgb_classifier = xgb.XGBClassifier(colsample_bytree = 0.3, max_depth = 4, n_estimators = i)
         xgb_classifier.fit(X_train, y_train)
         y_pred = xgb_classifier.predict(X_test)
         arr_xgb[i] = accuracy_score(y_test, y_pred)
@@ -267,12 +294,6 @@ def Adam(data, i):
     y_pred = xgb_classifier.predict(X_test)
     arr_adam = accuracy_score(y_test, y_pred)
     return arr_adam
-    # plt.figure(figsize=(10, 5))
-    # plt.plot([i for i in range(expruns)], arr_xgb, c='orange')
-    # plt.title('Adam for Train Data')
-    # plt.xlabel('Max_Experience_Run')
-    # plt.ylabel('Train Accuracy')
-    # plt.savefig('Adam Accuracy.png')
 
 def SGD(data, i):
     X_train, X_test, y_train, y_test = splitdataset(data)
@@ -304,9 +325,10 @@ def main():
     tree_choose(data,numebr_depth)
 
     #prune
+    expruns = 50
     post_pruning(decision_tree,X_train, X_test, y_train, y_test)
-    pre_prunig(X_train, X_test, y_train, y_test)
-    decision_tree_post_pruning = DecisionTreeClassifier(random_state=0, ccp_alpha=0.02, max_depth=3)
+    pre_prunig(X_train, X_test, y_train, y_test, expruns)
+    decision_tree_post_pruning = DecisionTreeClassifier(random_state=0, ccp_alpha=0.005, max_depth=3)
     decision_tree_post_pruning.fit(X_train,y_train)
     plt.figure(figsize = (10,5))
     tree.plot_tree(decision_tree_post_pruning,rounded=True,filled=True)
@@ -319,9 +341,8 @@ def main():
 
 
     #GDBT
-    expruns = 50
 
-    GDBT(X_train, X_test, y_train, y_test)
+    GDBT(data, X_train, X_test, y_train, y_test,expruns)
 
     #XGBoost
     XGBoost(data, expruns)

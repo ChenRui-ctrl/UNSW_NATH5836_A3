@@ -54,11 +54,11 @@ def splitdataset(data):
 
 
 def tree_make(X_train,y_train):
-    decision_tree = DecisionTreeRegressor(max_depth=5, criterion='squared_error')
+    decision_tree = DecisionTreeRegressor(max_depth=4, criterion='squared_error')
     detree = decision_tree.fit(X_train, y_train)
 
     from sklearn.tree import plot_tree
-    plt.figure(figsize=(90, 15))
+    plt.figure(figsize=(60, 10))
     plot_tree(detree,
               feature_names=['Sex', 'Length', 'Diameter', 'Height', 'Whole weight', 'Shucked weight', 'Viscera weight',
                              'Shell weight'],
@@ -80,22 +80,22 @@ def tree_choose(data,numebr_depth):
             X_train, X_test, y_train, y_test = splitdataset(data)
             decision_tree = DecisionTreeRegressor (max_depth=i, criterion='squared_error')
             decision_tree.fit(X_train, y_train)
-            buff_tr[j] = mean_squared_error(y_true=y_train, y_pred=decision_tree.predict(X_train))
-            buff_t[j] =  mean_squared_error(y_true=y_test, y_pred=decision_tree.predict(X_test))
+            buff_tr[j] = np.sqrt(mean_squared_error(y_true=y_train, y_pred=decision_tree.predict(X_train)))
+            buff_t[j] =  np.sqrt(mean_squared_error(y_true=y_test, y_pred=decision_tree.predict(X_test)))
         arr_tr[i-1] = buff_tr.mean()
         arr_t[i-1] = buff_t.mean()
     plt.figure(figsize=(10, 5))
     plt.plot([i for i in range(numebr_depth)], arr_tr, c='orange')
     plt.title('Decision Tree for Train Data')
     plt.xlabel('Max_Depth')
-    plt.ylabel('Regression Train MSE')
-    plt.savefig('Regression Decision Tree Train MSE.png')
+    plt.ylabel('Regression Train RMSE')
+    plt.savefig('Regression Decision Tree Train RMSE.png')
     plt.figure(figsize=(10, 5))
     plt.plot([i for i in range(numebr_depth)], arr_t, c='orange')
     plt.title('Decision Tree for Test Data')
     plt.xlabel('Max_Depth')
-    plt.ylabel('Test MSE')
-    plt.savefig('Regression Decision Tree Test MSE.png')
+    plt.ylabel('Test RMSE')
+    plt.savefig('Regression Decision Tree Test RMSE.png')
 
 def post_pruning(decision_tree,X_train, X_test, y_train, y_test):
     path = decision_tree.cost_complexity_pruning_path(X_train, y_train)
@@ -133,21 +133,32 @@ def post_pruning(decision_tree,X_train, X_test, y_train, y_test):
     train_scores = [clf.score(X_train, y_train) for clf in clfs]
     test_scores = [clf.score(X_test, y_test) for clf in clfs]
 
+
     fig, ax = plt.subplots()
     ax.set_xlabel("alpha")
-    ax.set_ylabel("accuracy")
-    ax.set_title("MSE vs alpha for training and testing sets")
+    ax.set_ylabel("R^2")
+    ax.set_title("R^2 vs alpha for training and testing sets")
     ax.plot(ccp_alphas, train_scores, marker="o", label="train", drawstyle="steps-post")
     ax.plot(ccp_alphas, test_scores, marker="o", label="test", drawstyle="steps-post")
     ax.legend()
-    plt.savefig('Regression MSE vs Alpha.png')
+    plt.savefig('Regression R^2 vs Alpha.png')
 
-def pre_prunig(X_train, X_test, y_train, y_test):
-    decision_tree = DecisionTreeRegressor(criterion='squared_error', max_depth=4, min_samples_leaf=5, min_samples_split=12,
-                                 splitter='random')
-    decision_tree.fit(X_train, y_train)
-    y_predicted = decision_tree.predict(X_test)
-    print('MSE score of pre pruning: ',mean_squared_error(y_test, y_predicted))
+def pre_prunig(X_train, X_test, y_train, y_test,expruns):
+    arr_tr = np.zeros(expruns)
+    for i in range(1, expruns + 1):
+        decision_tree = DecisionTreeRegressor(criterion='squared_error', max_depth=4, min_samples_leaf=5,
+                                              min_samples_split=12,
+                                              splitter='random')
+        decision_tree.fit(X_train, y_train)
+        y_pred = decision_tree.predict(X_test)
+        arr_tr[i - 1] = np.sqrt(mean_squared_error(y_test, y_pred))
+    plt.figure(figsize=(10, 5))
+    plt.plot([i for i in range(expruns)], arr_tr, c='orange')
+    plt.title('Pre-pruning for Train Data')
+    plt.xlabel('min_samples_leaf')
+    plt.ylabel('Train RMSE')
+    plt.savefig('Regression Pre-pruning RMSE.png')
+
 
 def random_forest_make(X_train, X_test, y_train, y_test,number_tree):
     arr_tr = np.zeros(number_tree)
@@ -155,50 +166,31 @@ def random_forest_make(X_train, X_test, y_train, y_test,number_tree):
         random_forest = RandomForestRegressor(n_estimators=i, max_leaf_nodes=16, n_jobs=-10)
         random_forest.fit(X_train, y_train)
         y_pred = random_forest.predict(X_test)
-        arr_tr[i-1] = mean_squared_error(y_test,y_pred)
+        arr_tr[i-1] = np.sqrt(mean_squared_error(y_test,y_pred))
     plt.figure(figsize=(10, 5))
     plt.plot([i for i in range(number_tree)], arr_tr, c='orange')
     plt.title('Random Forest for Train Data')
     plt.xlabel('Max_Number_Tree')
-    plt.ylabel('Train MSE')
-    plt.savefig('Regression Random Forest MSE.png')
+    plt.ylabel('Train RMSE')
+    plt.savefig('Regression Random Forest RMSE.png')
 
-def GDBT(X_train, X_test, y_train, y_test):
-    original_params = {'n_estimators': 1000, 'max_leaf_nodes': 4, 'max_depth': None, 'random_state': 2,
-                       'min_samples_split': 5}
+def GDBT(data, expruns):
+    arr_gbrt = np.zeros(expruns)
+    for i in range(1, expruns + 1):
+        X_train, X_test, y_train, y_test = splitdataset(data)
+        le = LabelEncoder()
+        y_train = le.fit_transform(y_train)
+        gbrt_classifier = ensemble.GradientBoostingRegressor(criterion='squared_error', n_estimators=i, subsample=1, max_depth=5, random_state=2, learning_rate=1)
+        gbrt_classifier.fit(X_train, y_train)
+        y_pred = gbrt_classifier.predict(X_test)
+        arr_gbrt[i - 1] = np.sqrt(mean_squared_error(y_test, y_pred))
 
-    plt.figure()
-
-    for label, color, setting in [('No shrinkage', 'orange',
-                                   {'learning_rate': 1.0, 'subsample': 1.0}),
-                                  ('learning_rate=0.2', 'turquoise',
-                                   {'learning_rate': 0.2, 'subsample': 1.0}),
-                                  ('subsample=0.5', 'blue',
-                                   {'learning_rate': 1.0, 'subsample': 0.5}),
-                                  ('learning_rate=0.2, subsample=0.5', 'gray',
-                                   {'learning_rate': 0.2, 'subsample': 0.5}),
-                                  ('learning_rate=0.2, max_features=2', 'magenta',
-                                   {'learning_rate': 0.2, 'max_features': 2})]:
-        params = dict(original_params)
-        params.update(setting)
-
-        clf = ensemble.GradientBoostingRegressor(**params)
-        clf.fit(X_train, y_train)
-
-        # compute test set deviance
-        test_deviance = np.zeros((params['n_estimators'],), dtype=np.float64)
-
-        for i, y_pred in enumerate(clf.staged_decision_function(X_test)):
-            # clf.loss_ assumes that y_test[i] in {0, 1}
-            test_deviance[i] = 2 * log_loss(y_test, y_pred)
-
-        plt.plot((np.arange(test_deviance.shape[0]) + 1)[::5], test_deviance[::5],
-                 '-', color=color, label=label)
-
-    plt.legend(loc='upper left')
-    plt.xlabel('Boosting Iterations')
-    plt.ylabel('Test Set Deviance')
-    plt.savefig('Regression GDBT.png')
+    plt.figure(figsize=(10, 5))
+    plt.plot([i for i in range(expruns)], arr_gbrt, c='orange')
+    plt.title('GDBT for Train Data')
+    plt.xlabel('Max_Experience_Run')
+    plt.ylabel('Train RMSE')
+    plt.savefig('Regression GDBT RMSE.png')
 
 def XGBoost(data, expruns):
 
@@ -214,14 +206,14 @@ def XGBoost(data, expruns):
             max_depth = 0, alpha = 5, n_estimators = i)
         xgb_classifier.fit(X_train, y_train)
         y_pred = xgb_classifier.predict(X_test)
-        arr_xgb[i] = mean_squared_error(y_test, y_pred)
+        arr_xgb[i] = np.sqrt(mean_squared_error(y_test, y_pred))
 
     plt.figure(figsize=(10, 5))
     plt.plot([i for i in range(expruns)], arr_xgb, c='orange')
     plt.title('XGBoost for Train Data')
     plt.xlabel('Max_Experience_Run')
-    plt.ylabel('Train MSE')
-    plt.savefig('Regression XGBoost MSE.png')
+    plt.ylabel('Train RMSE')
+    plt.savefig('Regression XGBoost RMSE.png')
 
 def Adam(data, i):
     X_train, X_test, y_train, y_test = splitdataset(data)
@@ -230,7 +222,7 @@ def Adam(data, i):
     xgb_classifier = MLPRegressor(random_state=i,solver='adam')
     xgb_classifier.fit(X_train, y_train)
     y_pred = xgb_classifier.predict(X_test)
-    arr_adam = mean_squared_error(y_test, y_pred)
+    arr_adam = np.sqrt(mean_squared_error(y_test, y_pred))
     return arr_adam
 
 
@@ -241,7 +233,7 @@ def SGD(data, i):
     xgb_classifier = MLPRegressor(random_state=i,solver='sgd')
     xgb_classifier.fit(X_train, y_train)
     y_pred = xgb_classifier.predict(X_test)
-    arr_sgb = mean_squared_error(y_test, y_pred)
+    arr_sgb = np.sqrt(mean_squared_error(y_test, y_pred))
     return(arr_sgb)
 
 
@@ -261,14 +253,15 @@ def main():
     tree_choose(data,numebr_depth)
 
     #prune
+    expruns = 50
     post_pruning(decision_tree,X_train, X_test, y_train, y_test)
-    pre_prunig(X_train, X_test, y_train, y_test)
+    pre_prunig(X_train, X_test, y_train, y_test,expruns)
     decision_tree_post_pruning = DecisionTreeRegressor(random_state=0, ccp_alpha=0.02,max_depth=3)
     decision_tree_post_pruning.fit(X_train,y_train)
     plt.figure(figsize = (10,5))
     tree.plot_tree(decision_tree_post_pruning,rounded=True,filled=True)
     plt.savefig('Regression Decision Tree After Post Pruning')
-    print('MSE score of post pruning:',mean_squared_error(y_test,decision_tree_post_pruning.predict((X_test))))
+    print('RMSE score of post pruning:',np.sqrt(mean_squared_error(y_test,decision_tree_post_pruning.predict((X_test)))))
 
     #random forest
     number_tree = 60
@@ -276,9 +269,8 @@ def main():
 
 
     #GDBT
-    expruns = 50
 
-    # GDBT(X_train, X_test, y_train, y_test)
+    GDBT(data,expruns)
 
     #XGBoost
     XGBoost(data, expruns)
@@ -299,8 +291,8 @@ def main():
     plt.legend()
     plt.title('Sgd & Adam for Train Data')
     plt.xlabel('Max_Experience_Run')
-    plt.ylabel('Train Accuracy')
-    plt.savefig('Regression Sgd vs Adam MSE.png')
+    plt.ylabel('Train RMSE')
+    plt.savefig('Regression Sgd vs Adam RMSE.png')
 
 
 
